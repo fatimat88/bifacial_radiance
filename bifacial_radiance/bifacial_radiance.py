@@ -30,6 +30,7 @@ def _popen(cmd, data_in, data_out=PIPE):
     from rgbeimage.py (Thomas Bleicher 2010)
     """
     cmd = str(cmd) # get's rid of unicode oddities
+    print "This is cmd", cmd
     #p = Popen(shlex.split(cmd), bufsize=-1, stdin=PIPE, stdout=data_out, stderr=PIPE)
     p = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=data_out, stderr=PIPE)
     data, err = p.communicate(data_in)
@@ -155,7 +156,18 @@ class RadianceObj:
     def getfilelist(self):
         ''' return concat of matfiles, radfiles and skyfiles
         '''
-        return self.materialfiles + self.skyfiles + self.radfiles
+#        return self.materialfiles + self.skyfiles + self.radfiles
+        #radfilewaddress = 'object/' 
+        #radfilewaddress += str(self.radfiles)
+        radfilewaddress = [direc+"/objects/"+i for i in self.radfiles ]
+        materialfilesaddress = [direc+"/"+i for i in self.materialfiles ]
+        skyfilesaddress = [direc+"/"+i for i in self.skyfiles ]
+
+        print radfilewaddress
+        print materialfilesaddress
+        print skyfilesaddress
+#        return self.materialfiles + self.skyfiles + radfilewaddress
+        return materialfilesaddress + skyfilesaddress + radfilewaddress
     
     def returnOctFiles(self):
         '''
@@ -222,7 +234,7 @@ class RadianceObj:
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
         }
         
-        path_to_save = 'EPWs\\' # create a directory and write the name of directory here
+        path_to_save = 'EPWs' # create a directory and write the name of directory here
         if not os.path.exists(path_to_save):
             os.makedirs(path_to_save)
         r = requests.get('https://github.com/NREL/EnergyPlus/raw/develop/weather/master.geojson', verify = False)
@@ -249,15 +261,15 @@ class RadianceObj:
         print 'Getting weather file: ' + name,
         r = requests.get(url,verify = False, headers = hdr)
         if r.ok:
-            with open(path_to_save + name, 'wb') as f:
+            with open(os.path.join(path_to_save , name), 'wb') as f:
                 f.write(r.text)
             print ' ... OK!'
         else:
             print ' connection error status code: %s' %( r.status_code)
             r.raise_for_status()
         
-        self.epwfile = 'EPWs\\'+name
-        return 'EPWs\\'+name
+        self.epwfile = os.path.join('EPWs',name)
+        return os.path.join('EPWs',name)
     
     def getEPW_all():
         ''' 
@@ -481,9 +493,21 @@ class RadianceObj:
             
         
         #os.system('oconv '+ ' '.join(filelist) + ' > %s.oct' % (octname))
-        
+ 
         cmd = 'oconv '+ ' '.join(filelist)
-        with open('%s.oct' % (octname),"w") as f:
+        print "This is cmd", cmd
+        print ""
+        print ""
+#        with open(os.path.join(path_to_save , octname), 'w') as f:
+    
+        minifl='%s.oct' % (octname)
+        fixpath = os.path.join(direc, minifl)
+        print "THIS IS fixpath ", fixpath
+        print
+        
+#        with open('%s.oct' % (octname),"w") as f:
+        with open(fixpath,"w") as f:
+
             err = _popen(cmd,None,f)
             #TODO:  exception handling for no sun up
             if err is not None:
@@ -633,6 +657,7 @@ class SceneObj:
     def __init__(self,moduletype=None):
         ''' initialize SceneObj
         '''
+        moduletype='simple_panel'
         if moduletype is None:
             moduletype = 'simple_panel'
         self.moduletype = moduletype
@@ -643,6 +668,7 @@ class SceneObj:
             self.y = 1.59 # height of module.
             self.bifi = 1  # bifaciality of the panel
             self.orientation = 'portrait' #default orientation of the scene
+            print "HELLOOOOOOO"
             if not os.path.isfile(radfile):
                 with open(radfile, 'wb') as f:
                     f.write('!genbox black PVmodule 0.95 1.59 0.02 | xform -t -0.475 0 0 ')    
@@ -656,7 +682,10 @@ class SceneObj:
             self.modulefile = 'objects\\monopanel_1.rad'
 
         else:
-            print('incorrect panel type selection')
+            print('incorrect panel type selection')   
+            #123 I think the ifs should be elsifs? Moduletype is 
+            # being correctly assigned to simmple_panel but this waring still comes up
+            
             return
             
     def makeScene10x3(self, tilt, height, pitch, orientation = None):
@@ -688,10 +717,13 @@ class SceneObj:
         
         text += self.modulefile
         # save the .RAD file
-        
-        radfile = 'objects\\%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch)
-        with open(radfile, 'wb') as f:
+        radfile='%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch)
+        minipth=direc+'/objects/'+radfile
+        with open(minipth, 'wb') as f:
+#        radfile = 'objects\\%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch)
+#        with open(radfile, 'wb') as f:
             f.write(text)
+            print minipth
         
 
         # define the 3-point front and back scan. if tilt < 45  else scan z
@@ -945,22 +977,23 @@ class AnalysisObj:
 
     
 if __name__ == "__main__":
-    '''
-    demo = RadianceObj('simple_panel')  
+    direc = r'/Users/sayala/Documents/RadianceScenes/Test'
+    demo = RadianceObj('simple_panel',direc)  
     demo.setGround(0.62) # input albedo or material name like 'concrete'
-    #epwfile = demo.getEPW(37.5,-77.6) #can't run this within NREL firewall.  BOO
-    metdata = demo.readEPW('EPWs\\USA_VA_Richmond.Intl.AP.724010_TMY.epw')
+    epwfile = demo.getEPW(37.5,-77.6) #can't run this within NREL firewall.  BOO
+    metdata = demo.readEPW(r'EPWs/USA_VA_Richmond.Intl.AP.724010_TMY.epw')
     # sky data for index 4010 - 4028 (June 17)  
-    #demo.gendaylit(metdata,4020)
-    demo.genCumSky(demo.epwfile)
+    demo.gendaylit(metdata,4020)
+    #demo.genCumSky(demo.epwfile)
     # create a scene using monopanel in landscape at 10 deg tilt, 1.5m pitch
     sceneDict = {'tilt':10,'pitch':1.5,'height':0.2,'orientation':'landscape'}
     scene = demo.makeScene('simple_panel',sceneDict)
-	filelist = demo.getfilelist() #filelist now generated in this function
+
+    filelist = demo.getfilelist() #filelist now generated in this function
     octfile = demo.makeOct(filelist) 
-    analysis = AnalysisObj(octfile, demo.basename)
-    analysis.analysis(octfile, demo.basename, scene.frontscan, scene.backscan)    
-    print('Annual bifacial ratio: %0.3f - %0.3f' %(min(analysis.backRatio), np.mean(analysis.backRatio)) )
-    '''
+#    analysis = AnalysisObj(octfile, demo.basename)
+#    analysis.analysis(octfile, demo.basename, scene.frontscan, scene.backscan)    
+#    print('Annual bifacial ratio: %0.3f - %0.3f' %(min(analysis.backRatio), np.mean(analysis.backRatio)) )
+    
 
 
