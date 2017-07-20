@@ -361,7 +361,7 @@ class RadianceObj:
         skyStr =   ("# start of sky definition for daylighting studies\n"  
             "# location name: " + str(locName) + " LAT: " + str(metdata.location.latitude) 
             +" LON: " + str(metdata.location.longitude) + "\n"
-            "!gendaylit %s %s %s" %(month,day,hour) ) + \
+            "!/Users/sayala/Documents/GitHub/Radiance/src/gen/gendaylit %s %s %s" %(month,day,hour) ) + \
             " -a %s -o %s" %(metdata.location.latitude, metdata.location.longitude) +\
             " -m %s" % (float(timeZone)*15) +\
             " -W %s %s -g %s -O 1 \n" %(dni, dhi, self.ground.ReflAvg) + \
@@ -495,6 +495,8 @@ class RadianceObj:
         #os.system('oconv '+ ' '.join(filelist) + ' > %s.oct' % (octname))
  
         cmd = 'oconv '+ ' '.join(filelist)
+        cmd = '/Users/sayala/Documents/GitHub/Radiance/src/ot/oconv '+ ' '.join(filelist)
+
         print "This is cmd", cmd
         print ""
         print ""
@@ -663,15 +665,14 @@ class SceneObj:
         self.moduletype = moduletype
         
         if moduletype == 'simple_panel':  #next module type
-            radfile = 'objects\\simple_panel.rad'
+            radfile = '/Users/sayala/Documents/RadianceScenes/Test/objects/simple_panel.rad'
             self.x = 0.95  # width of module.
             self.y = 1.59 # height of module.
             self.bifi = 1  # bifaciality of the panel
             self.orientation = 'portrait' #default orientation of the scene
-            print "HELLOOOOOOO"
             if not os.path.isfile(radfile):
                 with open(radfile, 'wb') as f:
-                    f.write('!genbox black PVmodule 0.95 1.59 0.02 | xform -t -0.475 0 0 ')    
+                    f.write('!/Users/sayala/Documents/GitHub/Radiance/src/gen/genbox black PVmodule 0.95 1.59 0.02 | /Users/sayala/Documents/GitHub/Radiance/src/gen/xform -t -0.475 0 0 ')    
             self.modulefile = radfile
             
         if moduletype == 'monopanel' :
@@ -679,7 +680,7 @@ class SceneObj:
             self.y = 1.59 # height of module.
             self.bifi = 1  # bifaciality of the panel
             self.orientation = 'portrait' #default orientation of the scene
-            self.modulefile = 'objects\\monopanel_1.rad'
+            self.modulefile = 'objects/monopanel_1.rad'
 
         else:
             print('incorrect panel type selection')   
@@ -704,7 +705,7 @@ class SceneObj:
         self.orientation = orientation
         ''' INITIALIZE VARIABLES '''
         dtor = np.pi/180
-        text = '!xform '
+        text = '!/Users/sayala/Documents/GitHub/Radiance/src/gen/xform '
 
         if orientation == 'landscape':  # transform for landscape
             text += '-rz -90 -t %s %s 0 '%(-self.y/2, self.x/2)
