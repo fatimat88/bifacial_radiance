@@ -13,6 +13,9 @@ import pandas as pd
 import numpy as np #already imported with above pylab magic
 #from IPython.display import Image
 from subprocess import Popen, PIPE  # replacement for os.system()
+import subprocess
+import platform
+
 #import shlex
 
 def _findme(lst, a): #find string match in a list. found this nifty script on stackexchange
@@ -30,15 +33,15 @@ def _popen(cmd, data_in, data_out=PIPE):
     from rgbeimage.py (Thomas Bleicher 2010)
     """
     cmd = str(cmd) # get's rid of unicode oddities
-    print "This is cmd", cmd
+    
     #p = Popen(shlex.split(cmd), bufsize=-1, stdin=PIPE, stdout=data_out, stderr=PIPE)
     p = Popen(cmd, bufsize=-1, stdin=PIPE, stdout=data_out, stderr=PIPE)
+
     data, err = p.communicate(data_in)
     if err:
         return 'error: '+err.strip()
     if data:
-        return data
-
+        return data  
 
         
 # start developing the class
@@ -159,15 +162,18 @@ class RadianceObj:
 #        return self.materialfiles + self.skyfiles + self.radfiles
         #radfilewaddress = 'object/' 
         #radfilewaddress += str(self.radfiles)
-        radfilewaddress = [direc+"/objects/"+i for i in self.radfiles ]
-        materialfilesaddress = [direc+"/"+i for i in self.materialfiles ]
-        skyfilesaddress = [direc+"/"+i for i in self.skyfiles ]
-
-        print radfilewaddress
-        print materialfilesaddress
-        print skyfilesaddress
-#        return self.materialfiles + self.skyfiles + radfilewaddress
-        return materialfilesaddress + skyfilesaddress + radfilewaddress
+        if platform.system()=='Darwin':   
+            #radfilewaddress = [direc+"/objects/"+i for i in self.radfiles ]  #123 Not sure what I did different here. Check if issues later on
+            radfilewaddress = [i for i in self.radfiles ]
+            materialfilesaddress = [direc+"/"+i for i in self.materialfiles ]
+            skyfilesaddress = [direc+"/"+i for i in self.skyfiles ]
+            print radfilewaddress
+            print materialfilesaddress
+            print skyfilesaddress 
+            return materialfilesaddress + skyfilesaddress + radfilewaddress
+        else:
+            return self.materialfiles + self.skyfiles + radfilewaddress
+        
     
     def returnOctFiles(self):
         '''
@@ -268,8 +274,12 @@ class RadianceObj:
             print ' connection error status code: %s' %( r.status_code)
             r.raise_for_status()
         
-        self.epwfile = os.path.join('EPWs',name)
-        return os.path.join('EPWs',name)
+        if platform.system()=='Darwin':   
+            self.epwfile = os.path.join('EPWs',name)
+            return os.path.join('EPWs',name)
+        else:
+            self.epwfile = 'EPWS\\'+name
+            return 'EPWs\\'+name
     
     def getEPW_all():
         ''' 
@@ -357,11 +367,13 @@ class RadianceObj:
         
         sky_path = 'skies'
 
-         #" -L %s %s -g %s \n" %(dni/.0079, dhi/.0079, self.ground.ReflAvg) + \
+        # This applies both to MacOS and Windows
+        radcommands = "!" + os.path.join(direcRad,'gendaylit') + " %s %s %s" %(month,day,hour)
+         
+        #" -L %s %s -g %s \n" %(dni/.0079, dhi/.0079, self.ground.ReflAvg) + \
         skyStr =   ("# start of sky definition for daylighting studies\n"  
             "# location name: " + str(locName) + " LAT: " + str(metdata.location.latitude) 
-            +" LON: " + str(metdata.location.longitude) + "\n"
-            "!/Users/sayala/Documents/GitHub/Radiance/src/gen/gendaylit %s %s %s" %(month,day,hour) ) + \
+            +" LON: " + str(metdata.location.longitude) + "\n"+ radcommands) +\
             " -a %s -o %s" %(metdata.location.latitude, metdata.location.longitude) +\
             " -m %s" % (float(timeZone)*15) +\
             " -W %s %s -g %s -O 1 \n" %(dni, dhi, self.ground.ReflAvg) + \
@@ -491,34 +503,36 @@ class RadianceObj:
         if octname is None:
             octname = self.basename
             
-        
         #os.system('oconv '+ ' '.join(filelist) + ' > %s.oct' % (octname))
- 
-        cmd = 'oconv '+ ' '.join(filelist)
-        cmd = '/Users/sayala/Documents/GitHub/Radiance/src/ot/oconv '+ ' '.join(filelist)
+                   
+        if platform.system()=='Darwin':
+            print "Darwin detected"
+            #subprocess.call("/usr/local/bin/oconv /Users/sayala/Documents/RadianceScenes/Test/materials/ground.rad /Users/sayala/Documents/RadianceScenes/Test/skies/sky_simple_panel.rad /Users/sayala/Documents/RadianceScenes/Test/objects/simple_panel_0.2_1.5_10x3.rad > /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
+            #subprocess.call("/usr/local/radiance/bin/oconv /Users/sayala/Documents/RadianceScenes/Test/materials/ground.rad /Users/sayala/Documents/RadianceScenes/Test/skies/sky_simple_panel.rad /Users/sayala/Documents/RadianceScenes/Test/objects/simple_panel_0.2_1.5_10x3.rad > /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
 
-        print "This is cmd", cmd
-        print ""
-        print ""
-#        with open(os.path.join(path_to_save , octname), 'w') as f:
-    
-        minifl='%s.oct' % (octname)
-        fixpath = os.path.join(direc, minifl)
-        print "THIS IS fixpath ", fixpath
-        print
-        
-#        with open('%s.oct' % (octname),"w") as f:
-        with open(fixpath,"w") as f:
-
-            err = _popen(cmd,None,f)
-            #TODO:  exception handling for no sun up
-            if err is not None:
-                if err[0:5] == 'error':
-                    raise Exception, err[7:]
-        
+            saveoct = os.path.join(direc, '%s.oct' % (octname))
+            
+            cmd = "/usr/local/radiance/bin/oconv "+ ' '.join(filelist)+ ' > '+ saveoct
+            p = subprocess.call(cmd, shell=True)            
+            if p == 0:
+                print("MacOS Created %s.oct" % (octname))
+            else:
+                print("Error on creating %s.oct" % (octname))
+        else:
+            cmd = 'oconv '+ ' '.join(filelist)
+            
+            with open('%s.oct' % (octname),"w") as f:
+            #with open(fixpath,"w") as f:
+                err = _popen(cmd,None,f)
+                #TODO:  exception handling for no sun up
+                if err is not None:
+                    if err[0:5] == 'error':
+                        raise Exception, err[7:]
+                print("Created %s.oct" % (octname)),
+   
         #use rvu to see if everything looks good. use cmd for this since it locks out the terminal.
         #'rvu -vf views\CUside.vp -e .01 monopanel_test.oct'
-        print("created %s.oct" % (octname)),
+        #print("created %s.oct" % (octname)),
         self.octfile = '%s.oct' % (octname)
         return '%s.oct' % (octname)
         
@@ -551,7 +565,10 @@ class RadianceObj:
 
         if sceneDict.has_key('orientation') is False:
             sceneDict['orientation'] = 'portrait'
+#        if sceneDict.has_key('azimuth') is False:   #123   Not on the version I donwloaded??
+#            sceneDict['azimuth'] = 180              #123    Not on the version I donwloaded??
         self.sceneRAD = self.scene.makeScene10x3(sceneDict['tilt'],sceneDict['height'],sceneDict['pitch'],sceneDict['orientation'])
+#        self.sceneRAD = self.scene.makeScene10x3(sceneDict['tilt'],sceneDict['height'],sceneDict['pitch'],sceneDict['orientation'],sceneDict['azimuth'])  #123 Not on the version I donwloaded??
         self.radfiles = [self.sceneRAD]
         
         return self.scene
@@ -665,23 +682,36 @@ class SceneObj:
         self.moduletype = moduletype
         
         if moduletype == 'simple_panel':  #next module type
-            radfile = '/Users/sayala/Documents/RadianceScenes/Test/objects/simple_panel.rad'
+            #radfile = '/Users/sayala/Documents/RadianceScenes/Test/objects/simple_panel.rad'
+
+            if platform.system()=='Darwin':
+                radfile = os.path.join(direc, 'objects/simple_panel.rad')
+            else:
+                radfile = 'objects\\simple_panel.rad'
+
+            # This command works for both MacOS and Windows
+            radcommands = '!' + os.path.join(direcRad,'genbox')+' black PVmodule 0.95 1.59 0.02 | '+ os.path.join(direcRad, 'xform')+ ' -t -0.475 0 0 '
             self.x = 0.95  # width of module.
             self.y = 1.59 # height of module.
             self.bifi = 1  # bifaciality of the panel
             self.orientation = 'portrait' #default orientation of the scene
             if not os.path.isfile(radfile):
                 with open(radfile, 'wb') as f:
-                    f.write('!/Users/sayala/Documents/GitHub/Radiance/src/gen/genbox black PVmodule 0.95 1.59 0.02 | /Users/sayala/Documents/GitHub/Radiance/src/gen/xform -t -0.475 0 0 ')    
+                    f.write(radcommands)    
             self.modulefile = radfile
             
-        if moduletype == 'monopanel' :
+        elif moduletype == 'monopanel' :
             self.x = 0.95  # width of module.
             self.y = 1.59 # height of module.
             self.bifi = 1  # bifaciality of the panel
             self.orientation = 'portrait' #default orientation of the scene
-            self.modulefile = 'objects/monopanel_1.rad'
-
+            
+            if platform.system()=='Darwin':
+                radfile = os.path.join(direc, 'objects/monopanel_1.rad')
+            else:
+                radfile = 'objects\\monopanel_1.rad'
+            self.modulefile = radfile
+            
         else:
             print('incorrect panel type selection')   
             #123 I think the ifs should be elsifs? Moduletype is 
@@ -705,8 +735,9 @@ class SceneObj:
         self.orientation = orientation
         ''' INITIALIZE VARIABLES '''
         dtor = np.pi/180
-        text = '!/Users/sayala/Documents/GitHub/Radiance/src/gen/xform '
 
+        # This command works for both MacOS and Windows
+        text = '!'+ os.path.join(direcRad,'xform')+' '
         if orientation == 'landscape':  # transform for landscape
             text += '-rz -90 -t %s %s 0 '%(-self.y/2, self.x/2)
             tempx = self.x; tempy = self.y
@@ -718,14 +749,19 @@ class SceneObj:
         
         text += self.modulefile
         # save the .RAD file
-        radfile='%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch)
-        minipth=direc+'/objects/'+radfile
-        with open(minipth, 'wb') as f:
+        
+        #radfile='%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch)
+        if platform.system()=='Darwin':
+            radfile=os.path.join(direc, 'objects/%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch))
+        else:
+            radfile='objects\\%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch)
+
+        with open(radfile, 'wb') as f:
 #        radfile = 'objects\\%s_%s_%s_10x3.rad'%(self.moduletype,height,pitch)
 #        with open(radfile, 'wb') as f:
             f.write(text)
-            print minipth
-        
+            print "makeScene10x3 Successful"
+    
 
         # define the 3-point front and back scan. if tilt < 45  else scan z
         if tilt < 45: #scan along y facing up/down.
@@ -885,24 +921,54 @@ class AnalysisObj:
         #rtrace ambient values set for 'very accurate':
         #cmd = "rtrace -i -ab 5 -aa .08 -ar 512 -ad 2048 -as 512 -h -oovs "+ octfile
         #rtrace optimized for faster scans: (ab2, others 96 is too coarse)
-        cmd = "rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs "+ octfile
-        temp_out = _popen(cmd,linepts)
-        if temp_out is not None:
-            if temp_out[0:5] == 'error':
-                raise Exception, temp_out[7:]
-            else:
-                for line in temp_out.splitlines():
-                    temp = line.split('\t')
-                    out['x'].append(float(temp[0]))
-                    out['y'].append(float(temp[1]))
-                    out['z'].append(float(temp[2]))
-                    out['r'].append(float(temp[3]))
-                    out['g'].append(float(temp[4]))
-                    out['b'].append(float(temp[5]))
-                    out['mattype'].append(temp[6])
-                    out['Wm2'].append(sum([float(i) for i in temp[3:6]])/3.0)
+#        cmd = "/usr/local/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs "+ octfile
+#        cmd = "rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs "+ octfile
 
-        
+
+        if platform.system()=='Darwin':           
+            with open('sc3.pts', 'wb') as f:    # Save points so it can be read by program
+                f.write(linepts)    
+
+            # 123 MUST FIX
+            # This should work, but it returns an empty output.out file. :(
+            # The rest of hte process assumes output.out hsa the output (generated in termianl for example)
+            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts >> /Users/sayala/Documents/RadianceScenes/Test/output.out', shell=True)
+            
+            with open('/Users/sayala/Documents/RadianceScenes/Test/output.out', 'r') as temp_out:    # OPENING OUTOUT
+                print("MacOS Reading RTRACE Results")
+                A=temp_out.read()
+                B=A.split('\n')               
+                for foo in range (0, len(B)):   
+                    if B[foo]=='':          #Checking for Last line empty
+                        print "End of Results"
+                    else:                             
+                        C=B[foo].split('\t')
+                        out['x'].append(float(C[0]))
+                        out['y'].append(float(C[1]))
+                        out['z'].append(float(C[2]))
+                        out['r'].append(float(C[3]))
+                        out['g'].append(float(C[4]))
+                        out['b'].append(float(C[5]))
+                        out['mattype'].append(C[6])
+                        out['Wm2'].append(sum([float(i) for i in C[3:6]])/3.0)                        
+        else:
+            cmd = "rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs "+ octfile
+            temp_out = _popen(cmd,linepts)       
+            if temp_out is not None:
+                if temp_out[0:5] == 'error':
+                    raise Exception, temp_out[7:]
+                else:
+                    for line in temp_out.splitlines():
+                        temp = line.split('\t')
+                        out['x'].append(float(temp[0]))
+                        out['y'].append(float(temp[1]))
+                        out['z'].append(float(temp[2]))
+                        out['r'].append(float(temp[3]))
+                        out['g'].append(float(temp[4]))
+                        out['b'].append(float(temp[5]))
+                        out['mattype'].append(temp[6])
+                        out['Wm2'].append(sum([float(i) for i in temp[3:6]])/3.0)
+
         if plotflag is True:
             plt.figure()
             plt.plot(out['Wm2'])
@@ -979,6 +1045,12 @@ class AnalysisObj:
     
 if __name__ == "__main__":
     direc = r'/Users/sayala/Documents/RadianceScenes/Test'
+    
+    if platform.system()=='Darwin':
+        direcRad = r'/Users/sayala/Documents/GitHub/Radiance/src/gen/'
+    else:
+        direcRad = ''           
+            
     demo = RadianceObj('simple_panel',direc)  
     demo.setGround(0.62) # input albedo or material name like 'concrete'
     epwfile = demo.getEPW(37.5,-77.6) #can't run this within NREL firewall.  BOO
@@ -992,9 +1064,67 @@ if __name__ == "__main__":
 
     filelist = demo.getfilelist() #filelist now generated in this function
     octfile = demo.makeOct(filelist) 
-#    analysis = AnalysisObj(octfile, demo.basename)
-#    analysis.analysis(octfile, demo.basename, scene.frontscan, scene.backscan)    
-#    print('Annual bifacial ratio: %0.3f - %0.3f' %(min(analysis.backRatio), np.mean(analysis.backRatio)) )
+    analysis = AnalysisObj(octfile, demo.basename)
+    analysis.analysis(octfile, demo.basename, scene.frontscan, scene.backscan)    
+    print('Annual bifacial ratio: %0.3f - %0.3f' %(min(analysis.backRatio), np.mean(analysis.backRatio)) )
     
 
 
+
+
+
+
+
+'''
+Making RTRACE Work: All of Tests Organized
+
+           
+            mylpts= '0 0.0935 0 0 0 1 \r0 0.1871 0 0 0 1 \r0 0.28067 0 0 0 1 \r0 0.37422 0 0 0 1 \r0 0.46778 0 0 0 1 \r0 0.56134 0 0 0 1 \r0 0.6548 0 0 0 1'
+            linepts=mylpts
+            with open('sc3.pts', 'wb') as f:    # Save points so it can be read by program
+                f.write(linepts)    
+                          
+            f = open("blah.txt", "w")
+            
+            Returns 127  Conclusion 1: need the full path to rtrace.
+            subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out", shell=True)
+            subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
+            
+            RETURNS 1
+            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts', shell=True)
+            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out', shell=True)
+            subprocess.call("echo '0 0.0987 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2-aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
+            subprocess.call('echo \'0 0.098 0 0 0 1\' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
+            subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct ", stdout=f, shell=True)
+            subprocess.call('echo \'0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1\' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
+            
+            RETURNS 0 (but 0 bite output)
+            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', shell=True)
+            subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', shell=True)
+            subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
+            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts', shell=True)
+            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts >> /Users/sayala/Documents/RadianceScenes/Test/output.out', shell=True)
+            subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct >> output.out', shell=True)
+            subprocess.call('echo 0 0.09 0 0 1 | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct >> output.out', shell=True)
+            Option: 
+                 p1 = Popen(["sc3.pts"], stdout=PIPE, shell=True)
+                 p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin=p1.stdout, stdout=PIPE, shell=True)
+                 output = p2.communicate()[0]
+
+            
+            No
+            p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin='0 0.09 0 0 0 1', stdout=PIPE)
+            p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin='\'0 0.09 0 0 0 1\'', stdout=PIPE)
+            p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin="'0 0.09 0 0 0 1'", stdout=PIPE)
+            p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin=mylpts, stdout=PIPE)
+            
+                        
+            WHAT WORKS ON TERMINAL:
+                rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out
+                echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out
+                /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out
+                echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out
+                
+                
+
+'''
