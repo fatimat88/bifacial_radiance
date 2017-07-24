@@ -3,7 +3,9 @@
 
 bifacial_radiance.py - module to develop radiance bifacial scenes, including gendaylit and gencumulativesky
 7/5/2016 - test script based on G173_journal_height
-5/1/2017 - standalone module
+5/1/2017 - standalone modules
+7/23/2017 - MacAdaptation (with OS Check)
+
 '''
 #start in pylab space to enable plotting
 #get_ipython().magic(u'pylab')
@@ -1076,55 +1078,125 @@ if __name__ == "__main__":
 
 
 '''
-Making RTRACE Work: All of Tests Organized
 
-           
-            mylpts= '0 0.0935 0 0 0 1 \r0 0.1871 0 0 0 1 \r0 0.28067 0 0 0 1 \r0 0.37422 0 0 0 1 \r0 0.46778 0 0 0 1 \r0 0.56134 0 0 0 1 \r0 0.6548 0 0 0 1'
-            linepts=mylpts
-            with open('sc3.pts', 'wb') as f:    # Save points so it can be read by program
-                f.write(linepts)    
-                          
-            f = open("blah.txt", "w")
-            
-            Returns 127  Conclusion 1: need the full path to rtrace.
-            subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out", shell=True)
-            subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
-            
-            RETURNS 1
-            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts', shell=True)
-            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out', shell=True)
-            subprocess.call("echo '0 0.0987 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2-aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
-            subprocess.call('echo \'0 0.098 0 0 0 1\' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
-            subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct ", stdout=f, shell=True)
-            subprocess.call('echo \'0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1\' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
-            
-            RETURNS 0 (but 0 bite output)
-            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', shell=True)
-            subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', shell=True)
-            subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
-            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts', shell=True)
-            subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts >> /Users/sayala/Documents/RadianceScenes/Test/output.out', shell=True)
-            subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct >> output.out', shell=True)
-            subprocess.call('echo 0 0.09 0 0 1 | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct >> output.out', shell=True)
-            Option: 
-                 p1 = Popen(["sc3.pts"], stdout=PIPE, shell=True)
-                 p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin=p1.stdout, stdout=PIPE, shell=True)
-                 output = p2.communicate()[0]
 
+Subject:  Calling RTRACE from Python in Mac Darwin OS
+
+Hello Radiance Community:,
+
+I've been trying to call Rtrace  command from Python 2.7.13 64bits, in macOS Sierra 10.12.6. I have already managed to run "oconv" successfully, but since Rtrace takes does inputs and outpus it is somehow not working,
+
+For reference, This is the working oconv:
+            saveoct = os.path.join(direc, '%s.oct' % (octname))
+            cmd = "/usr/local/radiance/bin/oconv "+ ' '.join(filelist)+ ' > '+ saveoct
+            p = subprocess.call(cmd, shell=True)            
+            #Which translates to : subprocess.call("/usr/local/radiance/bin/oconv /Users/sayala/Documents/RadianceScenes/Test/materials/ground.rad /Users/sayala/Documents/RadianceScenes/Test/skies/sky_simple_panel.rad /Users/sayala/Documents/RadianceScenes/Test/objects/simple_panel_0.2_1.5_10x3.rad > /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
+
+For Rtrace, I've tried either using Echo a string of point(s), or Pipe in the points as a variable, or read from a file where I saved the points (sc3.pts). None of the options have worked - some give the code 0 (which means it "works", but no info is saved into the output file or displayed on screen). Some give 1, and some 127, 127 being that the function was not found and 1 that one of the inputs/outpus was wrong.
+
+I could really use some advise if someone has tried this. I found a similar procedure on     https://www.radiance-online.org//pipermail/radiance-general/2005-September/002974.html and I tried it but it doesn't work for me.
+
+This are the commands that Work on my Terminal:
+
+    WHAT WORKS ON TERMINAL:
+    rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out
+    echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out
+    /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out
+    echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out
+
+This is my point(s) and source points file:
+       
+    mylpts= '0 0.0935 0 0 0 1 \r0 0.1871 0 0 0 1 \r0 0.28067 0 0 0 1 \r0 0.37422 0 0 0 1 \r0 0.46778 0 0 0 1 \r0 0.56134 0 0 0 1 \r0 0.6548 0 0 0 1'
+    linepts=mylpts
+    with open('sc3.pts', 'wb') as f:    # Save points so it can be read by program
+        f.write(linepts)    
+                      
+This is one of my save file options I've tried, besides "output.out":
+        f = open("output.txt", "w")       
+
+This are my tests:
+    Returns 127  Conclusion 1: need the full path to rtrace.
+    subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out", shell=True)
+    subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
+
+        
+RETURNS 1  (input issue?)
+        subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts', shell=True)
+        subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out', shell=True)
+        subprocess.call("echo '0 0.0987 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2-aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct", shell=True)
+        subprocess.call('echo \'0 0.098 0 0 0 1\' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
+        subprocess.call("echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct ", stdout=f, shell=True)
+        subprocess.call('echo \'0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1\' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
             
-            No
+RETURNS 0 (but don't write anything into the output file)
+        subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', shell=True)
+        subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', shell=True)
+        subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdout=f, shell=True)
+        subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts', shell=True)
+        subprocess.call('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts >> /Users/sayala/Documents/RadianceScenes/Test/output.out', shell=True)
+        subprocess.call('sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct >> output.out', shell=True)
+        subprocess.call('echo 0 0.09 0 0 1 | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct >> output.out', shell=True)
+        Also retrns 0:
+             p1 = Popen(["sc3.pts"], stdout=PIPE, shell=True)
+             p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin=p1.stdout, stdout=PIPE, shell=True)
+             output = p2.communicate()[0]
+
+        Also don't work
             p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin='0 0.09 0 0 0 1', stdout=PIPE)
             p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin='\'0 0.09 0 0 0 1\'', stdout=PIPE)
             p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin="'0 0.09 0 0 0 1'", stdout=PIPE)
             p2 = Popen('/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct', stdin=mylpts, stdout=PIPE)
             
                         
-            WHAT WORKS ON TERMINAL:
-                rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out
-                echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out
-                /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct < /Users/sayala/Documents/RadianceScenes/Test/sc3.pts > /Users/sayala/Documents/RadianceScenes/Test/output.out
-                echo '0 0.0987 0 0 0 1' '0 0.07 0 0 0 1' '0 0.04 0 0 0 1' | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct > /Users/sayala/Documents/RadianceScenes/Test/output.out
                 
-                
+#Other htings I've tried that don't work:
+cmd = "/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct << /Users/sayala/Documents/RadianceScenes/Test/sc3.pts"
+pipe = subprocess.Popen(cmd, shell = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = pipe.communicate()
+result = out.decode()
+print "Result : ",result 
 
+cmd = "echo 0 0.09 0 0 1 | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct"
+pipe = subprocess.Popen(cmd, shell = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = pipe.communicate()
+result = out.decode()
+print "Result : ",result 
+
+cmd = 'sc3.pts | /usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct'
+pipe = subprocess.Popen(cmd, shell = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = pipe.communicate()
+result = out.decode()
+print "Result : ",result 
+
+cmd = '/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct'
+pipe = subprocess.Popen(cmd, shell = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = pipe.communicate(mylpts)
+result = out.decode()
+print "Result : ",result 
+
+cmd = '/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct'
+pipe = subprocess.Popen(cmd, shell = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = pipe.communicate()[0 0.09 0 0 0 1]
+result = out.decode()
+print "Result : ",result 
+
+cmd = '/usr/local/radiance/bin/rtrace -i -ab 2 -aa .1 -ar 256 -ad 2048 -as 256 -h -oovs /Users/sayala/Documents/RadianceScenes/Test/simple_panel.oct'
+pipe = subprocess.Popen(cmd, shell = True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+out, err = pipe.communicate('0 0.09 0 0 0 1')
+result = out.decode()
+print "Result : ",result
+
+
+
+RESOURCES:
+    https://www.radiance-online.org//pipermail/radiance-general/2005-September/002974.html
+    http://crashcourse.housegordon.org/python-subprocess.html
+    https://docs.python.org/3/library/subprocess.html#subprocess.Popen
+    http://radsite.lbl.gov/radiance/man_html/rtrace.1.html
+
+
+
+
+  
 '''
+
