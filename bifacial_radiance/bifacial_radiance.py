@@ -549,7 +549,7 @@ class RadianceObj:
         
         return skyname
         
-    def genCumSky(self,epwfile = None, startdt = None, enddt = None, savefile = None):
+    def genCumSky(self,epwfile = None, startdt = None, enddt = None, savefile = None, s2mode = False):
         ''' genCumSky
         
         skydome using gencumsky.  note: gencumulativesky.exe is required to be installed,
@@ -567,7 +567,9 @@ class RadianceObj:
         hour                - tuple start, end hour of day. default (0,24)
         startdatetime       - datetime.datetime(Y,M,D,H,M,S) object. Only M,D,H selected. default: (0,1,1,0)
         enddatetime         - datetime.datetime(Y,M,D,H,M,S) object. Only M,D,H selected. default: (12,31,24,0)
-        savefile            - 
+        savefile            - (string) name of the cumulativesky .cal file
+        s2mode              - (bool)  whether gencumulativesky should use +s2 (binned sun) mode or +s1 (distributed sun, default) mode.  
+                                Note that +s2 mode creates the additional file 'SunFile.rad' 
         
         Returns
         -------
@@ -586,17 +588,24 @@ class RadianceObj:
             enddt = datetime.datetime(2001,12,31,23)
         if savefile is None:
             savefile = "cumulative"
+        if s2mode is True:
+            smodestring = '+s2'
+        else:
+            smodestring = '+s1'
         sky_path = 'skies'
         lat = self.metdata.latitude
         lon = self.metdata.longitude
         timeZone = self.metdata.timezone
+        houroffset = 0  # default: 0
         '''
-        cmd = "gencumulativesky +s1 -h 0 -a %s -o %s -m %s -E " %(lat, lon, float(timeZone)*15) +\
-            "-time %s %s -date 6 17 6 17 %s > cumulative.cal" % (epwfile)     
+        cmd = "gencumulativesky +s1 -h 0 -a %s -o %s -m %s %s " %(lat, lon, float(timeZone)*15, filetype) +\
+            "-time %s %s -date 6 17 6 17 %s > cumulative.cal" % (startdt.hour, enddt.hour+1, 
+                                                                 epwfile)     
         print cmd
         os.system(cmd)
         '''
-        cmd = "gencumulativesky +s1 -h 0 -a %s -o %s -m %s %s " %(lat, lon, float(timeZone)*15, filetype) +\
+        
+        cmd = "gencumulativesky %s -h %s -a %s -o %s -m %s %s " %(smodestring, houroffset,lat, lon, float(timeZone)*15, filetype) +\
             "-time %s %s -date %s %s %s %s %s" % (startdt.hour, enddt.hour+1, 
                                                   startdt.month, startdt.day, 
                                                   enddt.month, enddt.day,
@@ -774,6 +783,8 @@ class RadianceObj:
         trackerdict:   append 'skyfile'  to the 1-axis dict with the location of the sky .radfile
 
         '''
+        s2mode = False#  Is genCumSky using +s2 or +s1?
+        
         if trackerdict == None:
             try:
                 trackerdict = self.trackerdict
@@ -784,8 +795,20 @@ class RadianceObj:
             # call gencumulativesky with a new .cal and .rad name
             csvfile = trackerdict[theta]['csvfile']
             savefile = '1axis_%s'%(theta)  #prefix for .cal file and skies\*.rad file
-            skyfile = self.genCumSky(epwfile = csvfile,  savefile = savefile)
-            trackerdict[theta]['skyfile'] = skyfile
+            skyfile = self.genCumSky(epwfile = csvfile,  savefile = savefile, s2mode = s2mode)
+            
+            if s2mode is True:
+                # for +s2 mode with gencumsky, a 'SunFile.rad' file is created.  This must be renamed here
+                sunfile = savefile+'SunFile.rad'
+                try:
+                    os.remove(sunfile)
+                except:
+                    pass        
+                os.rename('SunFile.rad',sunfile)
+                trackerdict[theta]['skyfile'] = [skyfile, sunfile]
+            else:
+                trackerdict[theta]['skyfile'] = skyfile
+            
             print('Created skyfile %s'%(skyfile))
         # delete default skyfile (not strictly necessary)
         self.skyfiles = None
